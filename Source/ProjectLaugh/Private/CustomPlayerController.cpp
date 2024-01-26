@@ -8,6 +8,9 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Components/InputComponent.h"
+#include "GameFramework/Pawn.h"
+#include "PlayerCharacter.h"
+
 
 void ACustomPlayerController::SetupInputComponent()
 {
@@ -27,15 +30,26 @@ void ACustomPlayerController::SetupInputComponent()
 	Subsystem->AddMappingContext(GameplayContext, 0);
 }
 
+void ACustomPlayerController::SetPawn(APawn* InPawn)
+{
+	Super::SetPawn(InPawn);
+
+	APlayerCharacter* L_PlayerCharacter = Cast<APlayerCharacter>(GetPawn());
+	if (L_PlayerCharacter) {
+		PlayerCharacter = L_PlayerCharacter;
+		if (GEngine) {
+			FString Message = FString::Printf(TEXT("%s: Set Player character reference"), *(this->GetName()));
+			//0 counts as a unique key, -1 means don't use any key
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, Message);
+		}
+	}
+}
+
 void ACustomPlayerController::ApplyThruster(const FInputActionValue& Value)
 {
-	if (GEngine) {
-
-		const FVector2D MovementVector = Value.Get<FVector2D>();
-
-		FString Message = FString::Printf(TEXT("%s: Thrust Vector %s"), *(this->GetName()), *MovementVector.ToString());
-		//0 counts as a unique key, -1 means don't use any key
-		GEngine->AddOnScreenDebugMessage(0, 0.f, FColor::Green, Message);
+	const FVector2D MovementVector = Value.Get<FVector2D>();
+	if (PlayerCharacter) {
+		PlayerCharacter->ApplyThruster(MovementVector);
 	}
 }
 

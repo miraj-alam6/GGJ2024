@@ -9,6 +9,7 @@
 class UInputMappingContext;
 class UInputAction;
 class UInputMappingContext;
+class APlayerCharacter;
 
 struct FInputActionValue;
 
@@ -29,7 +30,9 @@ protected:
 	UInputAction* ThrusterAction;
 	UPROPERTY(EditDefaultsOnly, Category = Input)
 	UInputAction* GrappleAction;
+	virtual void SetPawn(APawn* InPawn) override;
 private:
+	APlayerCharacter* PlayerCharacter;
 	void ApplyThruster(const FInputActionValue& Value);
 	void GrapplePress(const FInputActionValue& Value);
 	void GrappleRelease(const FInputActionValue& Value);

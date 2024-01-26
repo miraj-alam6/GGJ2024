@@ -4,6 +4,9 @@
 #include "PlayerCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
+
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
@@ -46,6 +49,27 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void APlayerCharacter::ApplyThruster(FVector2D Vector)
+{
+	FVector XZForceDirection = FVector(Vector.X, 0, Vector.Y);
+	float ForceScalar = 0.f;
+	if (bUseAcceleration) {
+		ForceScalar = GetCapsuleComponent()->GetMassScale() * ThrusterAccelertion;
+	}
+	else {
+		ForceScalar = ThrusterForce;
+	}
+
+	FVector Force = XZForceDirection * ThrusterForce;
+
+	GetCapsuleComponent()->AddForce(Force);
+	if (GEngine) {
+		FString Message = FString::Printf(TEXT("%s: Applied Force %s"), *(this->GetName()), *Force.ToString());
+		//0 counts as a unique key, -1 means don't use any key
+		GEngine->AddOnScreenDebugMessage(0, 0.f, FColor::Green, Message);
+	}
 }
 
 // Called to bind functionality to input
