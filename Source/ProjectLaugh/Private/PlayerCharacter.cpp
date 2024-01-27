@@ -61,14 +61,25 @@ void APlayerCharacter::ShootAtAimLocation()
 	if (CurrentGrappleState == GrappleState::Retracted) {
 		ShootGoalLocation = AimLocation;
 		ShootCurrentLocation = AimLocation;
-		FVector CorrectEndLocation = UKismetMathLibrary::InverseTransformLocation(GetActorTransform(), ShootCurrentLocation);
-		Cable->EndLocation = CorrectEndLocation;
+		UpdateCableEndPoint();
 
 		//APhysicsActor* OutPhysicsActor;
 		if (GetDidCableConnect()) {
-			AttachedPhysicsActor->OffsetWhenAttached = ShootCurrentLocation - AttachedPhysicsActor->GetActorLocation();
+			AttachedPhysicsActor->OffsetWhenAttached = ShootCurrentLocation - AttachedPhysicsActor->GetSimulatedBodyLocation();
 			CurrentGrappleState = GrappleState::AttachedRetracting;
 		}
+	}
+}
+
+void APlayerCharacter::UpdateCableEndPoint()
+{
+
+	FVector CorrectEndLocation = UKismetMathLibrary::InverseTransformLocation(GetActorTransform(), ShootCurrentLocation);
+	Cable->EndLocation = CorrectEndLocation;
+	if (GEngine) {
+		FString Message = FString::Printf(TEXT("%s: Stuff World %s  Local Cable %s"), *(this->GetName()), *ShootCurrentLocation.ToString(), *CorrectEndLocation.ToString());
+		//0 counts as a unique key, -1 means don't use any key
+		GEngine->AddOnScreenDebugMessage(4, 0.f, FColor::Green, Message);
 	}
 }
 
@@ -118,13 +129,18 @@ void APlayerCharacter::GrappleTowardsEachOther()
 		float ForceScalar;
 
 		//GetActorLocation is for player because this is player. 
-		FVector ActorToPlayerDisplacement = (GetActorLocation() - AttachedPhysicsActor->GetActorLocation());
+		FVector ActorToPlayerDisplacement = (GetActorLocation() - AttachedPhysicsActor->GetSimulatedBodyLocation());
 		float DistanceSquared = ActorToPlayerDisplacement.SquaredLength();
 		FVector ActorToPlayerDirection = (ActorToPlayerDisplacement).GetSafeNormal();
 		FVector PlayerToActorDirection = ActorToPlayerDirection * -1.f;
 
-		//Just using gravity formula as an approximation of grapple hook physics
-		ForceScalar = (GrapplePullConstant * AttachedPhysicsActor->GetMass() * GetMass()) / DistanceSquared;
+		//Just using gravity formula as an approximation of grapple hook physics, but removing distance from equation may feel better.
+		if (bDivideByDistance) {
+			ForceScalar = (GrapplePullConstant * AttachedPhysicsActor->GetMass() * GetMass()) / DistanceSquared;
+		}
+		else {
+			ForceScalar = (GrapplePullConstantWithNoDivision * AttachedPhysicsActor->GetMass() * GetMass());
+		}
 
 		FVector ForceUponPlayer = PlayerToActorDirection * ForceScalar;
 		FVector ForceUponActor = ActorToPlayerDirection * ForceScalar;
@@ -133,23 +149,31 @@ void APlayerCharacter::GrappleTowardsEachOther()
 		AttachedPhysicsActor->AddConstantForce(ForceUponActor);
 		AddConstantForce(ForceUponPlayer);
 
-		if (GEngine) {
-			FString Message = FString::Printf(TEXT("%s: All parts of scalar %f : %f , %f, %f, %f, "), *(this->GetName()), 
-				ForceScalar, GrapplePullConstant, AttachedPhysicsActor->GetMass(), GetMass(), DistanceSquared);
-			//0 counts as a unique key, -1 means don't use any key
-			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Green, Message);
-		}
-		if (GEngine) {
-			FString Message = FString::Printf(TEXT("%s: Applied Force on Actor %s"), *(this->GetName()), *ForceUponActor.ToString());
-			//0 counts as a unique key, -1 means don't use any key
-			GEngine->AddOnScreenDebugMessage(2, 0.f, FColor::Green, Message);
-		}
-		if (GEngine) {
-			FString Message = FString::Printf(TEXT("%s: Applied Force on Player %s"), *(this->GetName()), *ForceUponPlayer.ToString());
-			//0 counts as a unique key, -1 means don't use any key
-			GEngine->AddOnScreenDebugMessage(3, 0.f, FColor::Green, Message);
-		}
+		//if (GEngine) {
+		//	FString Message = FString::Printf(TEXT("%s: All parts of scalar %f : %f , %f, %f, %f, "), *(this->GetName()), 
+		//		ForceScalar, GrapplePullConstant, AttachedPhysicsActor->GetMass(), GetMass(), DistanceSquared);
+		//	//0 counts as a unique key, -1 means don't use any key
+		//	GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Green, Message);
+		//}
+		//if (GEngine) {
+		//	FString Message = FString::Printf(TEXT("%s: Applied Force on Actor %s"), *(this->GetName()), *ForceUponActor.ToString());
+		//	//0 counts as a unique key, -1 means don't use any key
+		//	GEngine->AddOnScreenDebugMessage(2, 0.f, FColor::Green, Message);
+		//}
+		//if (GEngine) {
+		//	FString Message = FString::Printf(TEXT("%s: Applied Force on Player %s"), *(this->GetName()), *ForceUponPlayer.ToString());
+		//	//0 counts as a unique key, -1 means don't use any key
+		//	GEngine->AddOnScreenDebugMessage(3, 0.f, FColor::Green, Message);
+		//}
 
+	}
+}
+
+void APlayerCharacter::SetCableEndpointToAttachment()
+{
+	if (AttachedPhysicsActor) {
+		ShootCurrentLocation = AttachedPhysicsActor->GetSimulatedBodyLocation();
+		UpdateCableEndPoint();
 	}
 }
 
@@ -167,6 +191,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 			break;
 		case GrappleState::AttachedRetracting:
 			GrappleTowardsEachOther();
+			SetCableEndpointToAttachment();
 			break;
 		case GrappleState::FullRetracting:
 

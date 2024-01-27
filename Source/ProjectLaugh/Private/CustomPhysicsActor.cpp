@@ -33,6 +33,11 @@ float ACustomPhysicsActor::GetMass()
 	return StaticMesh->GetMassScale();
 }
 
+FVector ACustomPhysicsActor::GetSimulatedBodyLocation()
+{
+	return StaticMesh->GetComponentLocation();
+}
+
 // Called when the game starts or when spawned
 void ACustomPhysicsActor::BeginPlay()
 {
