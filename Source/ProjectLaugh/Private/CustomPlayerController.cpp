@@ -17,19 +17,25 @@
 void ACustomPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
-	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) {
-		EnhancedInputComponent->BindAction(ThrusterAction, ETriggerEvent::Triggered, this, &ACustomPlayerController::ApplyThruster);
-	}
+	if (!bAdded) {
+		bAdded = true;
+		if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) {
+			EnhancedInputComponent->BindAction(ThrusterAction, ETriggerEvent::Triggered, this, &ACustomPlayerController::ApplyThruster);
+		}
 
-	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) {
-		EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Started, this, &ACustomPlayerController::GrapplePress);
-	}
-	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) {
-		EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Completed, this, &ACustomPlayerController::GrappleRelease);
-	}
+		if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) {
+			EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Started, this, &ACustomPlayerController::GrapplePress);
+		}
+		if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) {
+			EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Completed, this, &ACustomPlayerController::GrappleRelease);
+		}
+		if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) {
+			EnhancedInputComponent->BindAction(RetractAction, ETriggerEvent::Started, this, &ACustomPlayerController::RetractPress);
+		}
 
-	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
-	Subsystem->AddMappingContext(GameplayContext, 0);
+		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+		Subsystem->AddMappingContext(GameplayContext, 0);
+	}
 }
 
 void ACustomPlayerController::Tick(float DeltaTime)
@@ -129,4 +135,11 @@ void ACustomPlayerController::GrappleRelease(const FInputActionValue& Value)
 	//	//0 counts as a unique key, -1 means don't use any key
 	//	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, Message);
 	//}
+}
+
+void ACustomPlayerController::RetractPress(const FInputActionValue& Value)
+{
+	if (PlayerCharacter) {
+		PlayerCharacter->StartRetraction();
+	}
 }

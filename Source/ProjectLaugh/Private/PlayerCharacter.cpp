@@ -71,6 +71,13 @@ void APlayerCharacter::ShootAtAimLocation()
 	}
 }
 
+void APlayerCharacter::StartRetraction()
+{
+	//CurrentGrappleState = GrappleState::FullRetracting;
+	CurrentGrappleState = GrappleState::Retracted;
+	Cable->EndLocation = FVector::ZeroVector;
+}
+
 void APlayerCharacter::UpdateCableEndPoint()
 {
 

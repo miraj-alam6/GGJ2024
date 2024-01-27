@@ -16,7 +16,8 @@ enum class GrappleState : uint8 {
 	Retracted,
 	Attached,
 	AttachedRetracting,
-	FullRetracting
+	FullRetracting,
+	ShootingOut
 };
  
 
@@ -30,6 +31,7 @@ public:
 	APlayerCharacter();
 	void SetAimEndPointLocation(FVector Location);
 	void ShootAtAimLocation();
+	void StartRetraction();
 	void UpdateCableEndPoint();
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USceneComponent* RopeStartPivot;
