@@ -11,6 +11,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "CustomPhysicsActor.h"
+#include "Math/UnrealMathUtility.h"
 
 
 // Sets default values
@@ -58,24 +59,37 @@ void APlayerCharacter::SetAimEndPointLocation(FVector Location)
 
 void APlayerCharacter::ShootAtAimLocation()
 {
-	if (CurrentGrappleState == GrappleState::Retracted) {
+	if (CurrentGrappleState == GrappleState::Retracted || CurrentGrappleState == GrappleState::FullRetracting) {
+		Cable->SetVisibility(true);
 		ShootGoalLocation = AimLocation;
 		ShootCurrentLocation = AimLocation;
-		UpdateCableEndPoint();
-
-		//APhysicsActor* OutPhysicsActor;
-		if (GetDidCableConnect()) {
-			AttachedPhysicsActor->OffsetWhenAttached = ShootCurrentLocation - AttachedPhysicsActor->GetSimulatedBodyLocation();
-			CurrentGrappleState = GrappleState::AttachedRetracting;
+		CableDirection = (AimLocation - GetActorLocation()).GetSafeNormal();
+		if (GEngine) {
+			FString Message = FString::Printf(TEXT("%s: ShootDirection is %s"), *(this->GetName()), *CableDirection.ToString());
+			//0 counts as a unique key, -1 means don't use any key
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, Message);
 		}
+		//APhysicsActor* OutPhysicsActor;
+		CurrentGrappleShootOutDistance = 0.f;
+		CurrentGrappleState = GrappleState::ShootingOut;
 	}
 }
 
 void APlayerCharacter::StartRetraction()
 {
-	//CurrentGrappleState = GrappleState::FullRetracting;
-	CurrentGrappleState = GrappleState::Retracted;
+	//TODO remove following
+	//EndRetraction();
+	if (CurrentGrappleState != GrappleState::Retracted && CurrentGrappleState != GrappleState::FullRetracting) {
+		CurrentGrappleState = GrappleState::FullRetracting;
+	}
+}
+
+void APlayerCharacter::EndRetraction()
+{
+	Cable->SetVisibility(false);
 	Cable->EndLocation = FVector::ZeroVector;
+	CurrentGrappleShootOutDistance = 0.f;
+	CurrentGrappleState = GrappleState::Retracted;
 }
 
 void APlayerCharacter::UpdateCableEndPoint()
@@ -95,6 +109,7 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	Cable->EndLocation = FVector::ZeroVector;
+	Cable->SetVisibility(false);
 	
 }
 
@@ -106,9 +121,11 @@ bool APlayerCharacter::GetDidCableConnect()
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> TraceObjectTypes;
 	TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_PhysicsBody));
+	TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
+	TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
 
-	bool bHit = UKismetSystemLibrary::SphereOverlapActors(this, ShootCurrentLocation, SphereSize, TraceObjectTypes, ACustomPhysicsActor::StaticClass(), IgnoreActors, OutActors);
-	DrawDebugSphere(GetWorld(), ShootCurrentLocation, SphereSize, 12, FColor::Yellow, false, 0.1);
+	bool bHit = UKismetSystemLibrary::SphereOverlapActors(this, ShootCurrentLocation, SphereSize, TraceObjectTypes, AActor::StaticClass(), IgnoreActors, OutActors);
+	//DrawDebugSphere(GetWorld(), ShootCurrentLocation, SphereSize, 12, FColor::Yellow, false, 0.1);
 
 	if (bHit) {		
 		for (AActor* Actor : OutActors) {
@@ -116,6 +133,10 @@ bool APlayerCharacter::GetDidCableConnect()
 			if (PhysicsActor) {				
 				AttachedPhysicsActor = PhysicsActor;
 				return true;
+			}
+			else {
+				StartRetraction();
+				return false;
 			}
 		}
 	}
@@ -127,23 +148,21 @@ bool APlayerCharacter::GetDidCableConnect()
 
 void APlayerCharacter::GrappleTowardsEachOther()
 {
-	if (GEngine) {
-		FString Message = FString::Printf(TEXT("%s: Marker 1"), *(this->GetName()));
-		//0 counts as a unique key, -1 means don't use any key
-		GEngine->AddOnScreenDebugMessage(0, 0.f, FColor::Green, Message);
-	}
+
 	if (AttachedPhysicsActor) {
 		float ForceScalar;
 
 		//GetActorLocation is for player because this is player. 
 		FVector ActorToPlayerDisplacement = (GetActorLocation() - AttachedPhysicsActor->GetSimulatedBodyLocation());
-		float DistanceSquared = ActorToPlayerDisplacement.SquaredLength();
+		//float DistanceSquared = ActorToPlayerDisplacement.SquaredLength();
+		float Distance = ActorToPlayerDisplacement.Length();
 		FVector ActorToPlayerDirection = (ActorToPlayerDisplacement).GetSafeNormal();
 		FVector PlayerToActorDirection = ActorToPlayerDirection * -1.f;
 
 		//Just using gravity formula as an approximation of grapple hook physics, but removing distance from equation may feel better.
 		if (bDivideByDistance) {
-			ForceScalar = (GrapplePullConstant * AttachedPhysicsActor->GetMass() * GetMass()) / DistanceSquared;
+			//ForceScalar = (GrapplePullConstant * AttachedPhysicsActor->GetMass() * GetMass()) / DistanceSquared;
+			ForceScalar = (GrapplePullConstant * AttachedPhysicsActor->GetMass() * GetMass()) / Distance;
 		}
 		else {
 			ForceScalar = (GrapplePullConstantWithNoDivision * AttachedPhysicsActor->GetMass() * GetMass());
@@ -155,7 +174,8 @@ void APlayerCharacter::GrappleTowardsEachOther()
 
 		AttachedPhysicsActor->AddConstantForce(ForceUponActor);
 		AddConstantForce(ForceUponPlayer);
-
+		CableDirection = PlayerToActorDirection;
+		CurrentGrappleShootOutDistance = Distance;
 		//if (GEngine) {
 		//	FString Message = FString::Printf(TEXT("%s: All parts of scalar %f : %f , %f, %f, %f, "), *(this->GetName()), 
 		//		ForceScalar, GrapplePullConstant, AttachedPhysicsActor->GetMass(), GetMass(), DistanceSquared);
@@ -179,6 +199,7 @@ void APlayerCharacter::GrappleTowardsEachOther()
 void APlayerCharacter::SetCableEndpointToAttachment()
 {
 	if (AttachedPhysicsActor) {
+		//ShootCurrentLocation = AttachedPhysicsActor->GetSimulatedBodyLocation() + AttachedPhysicsActor->OffsetWhenAttached;
 		ShootCurrentLocation = AttachedPhysicsActor->GetSimulatedBodyLocation();
 		UpdateCableEndPoint();
 	}
@@ -192,18 +213,50 @@ void APlayerCharacter::Tick(float DeltaTime)
 	switch (CurrentGrappleState){
 		case GrappleState::Retracted:
 
-		break;
-		case GrappleState::Attached:
-
 			break;
 		case GrappleState::AttachedRetracting:
 			GrappleTowardsEachOther();
 			SetCableEndpointToAttachment();
 			break;
+
+		case GrappleState::ShootingOut:
+
+			if (GEngine) {
+				FString Message = FString::Printf(TEXT("%s: Difference %f"), *(this->GetName()), CurrentGrappleShootOutDistance - GrappleShootOutMaxDistance);
+				//0 counts as a unique key, -1 means don't use any key
+				GEngine->AddOnScreenDebugMessage(0, 0.f, FColor::Green, Message);
+			}
+
+			if (FMath::IsNearlyEqual(CurrentGrappleShootOutDistance, GrappleShootOutMaxDistance, 1.0f)) {
+				StartRetraction();
+				break;
+			}
+
+			CurrentGrappleShootOutDistance = FMath::FInterpTo(CurrentGrappleShootOutDistance, GrappleShootOutMaxDistance, DeltaTime, GrappleShootOutSpeed);
+			ShootCurrentLocation = RopeStartPivot->GetComponentLocation() + CableDirection * CurrentGrappleShootOutDistance;
+			UpdateCableEndPoint();
+			if (GetDidCableConnect()) {
+				AttachedPhysicsActor->OffsetWhenAttached = ShootCurrentLocation - AttachedPhysicsActor->GetSimulatedBodyLocation();
+				AttachedPhysicsActor->OffsetWhenAttached.Y = 0;
+				CurrentGrappleState = GrappleState::AttachedRetracting;
+			}
+			break;
 		case GrappleState::FullRetracting:
+			if (FMath::IsNearlyZero(CurrentGrappleShootOutDistance, 20.0f)) {
+				EndRetraction();
+				break;
+			}
+			CurrentGrappleShootOutDistance = FMath::FInterpTo(CurrentGrappleShootOutDistance, 0, DeltaTime, GrappleFullRetractionSpeed);
+			ShootCurrentLocation = RopeStartPivot->GetComponentLocation() + CableDirection * CurrentGrappleShootOutDistance;
+			UpdateCableEndPoint();
+			break;
+
+
+		case GrappleState::Attached:
 
 			break;
 	}
+
 }
 
 void APlayerCharacter::ApplyThruster(FVector2D Vector)

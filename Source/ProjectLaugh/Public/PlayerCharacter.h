@@ -32,6 +32,7 @@ public:
 	void SetAimEndPointLocation(FVector Location);
 	void ShootAtAimLocation();
 	void StartRetraction();
+	void EndRetraction();
 	void UpdateCableEndPoint();
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USceneComponent* RopeStartPivot;
@@ -67,8 +68,18 @@ protected:
 	float GrapplePullConstantWithNoDivision;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
 	bool bDivideByDistance;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float GrappleShootOutSpeed = 300.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float GrappleFullRetractionSpeed = 1000.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float GrappleShootOutMaxDistance = 300.f;
+
+
 
 	GrappleState CurrentGrappleState = GrappleState::Retracted;
+	float CurrentGrappleShootOutDistance;
+	FVector CableDirection;
 
 	//Grapple Functions
 	bool GetDidCableConnect();
