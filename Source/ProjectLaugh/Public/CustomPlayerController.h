@@ -9,7 +9,9 @@
 class UInputMappingContext;
 class UInputAction;
 class UInputMappingContext;
+class APhysicsActor;
 class APlayerCharacter;
+
 
 struct FInputActionValue;
 
@@ -22,6 +24,7 @@ class PROJECTLAUGH_API ACustomPlayerController : public APlayerController
 	GENERATED_BODY()
 public:
 	virtual void SetupInputComponent();
+	virtual void Tick(float DeltaTime) override;
 protected:
 	//Input
 	UPROPERTY(EditDefaultsOnly, Category = Input)
