@@ -10,6 +10,8 @@
 #include "Components/InputComponent.h"
 #include "GameFramework/Pawn.h"
 #include "PlayerCharacter.h"
+#include "Kismet/GameplayStatics.h"
+#include "PhysicsActor.h"
 
 
 void ACustomPlayerController::SetupInputComponent()
@@ -28,6 +30,23 @@ void ACustomPlayerController::SetupInputComponent()
 
 	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 	Subsystem->AddMappingContext(GameplayContext, 0);
+}
+
+void ACustomPlayerController::Tick(float DeltaTime)
+{
+	if (PlayerCharacter) 
+	{
+
+		FVector MouseWorldPosition;
+		FVector MouseWorldDirection;
+		DeprojectMousePositionToWorld(MouseWorldPosition, MouseWorldDirection);;
+		FVector StartLocation = PlayerCharacter->RopeStartPivot->GetComponentLocation();
+		//FVector EndLocation = StartLocation + MouseDirection * 500.f;
+		FVector EndLocation = StartLocation + MouseWorldDirection * 1000.f;
+		EndLocation.Y = 0;
+		//DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Red, false, 0.0f, 0, 10.f);
+		PlayerCharacter->SetAimEndPointLocation(EndLocation);
+	}
 }
 
 void ACustomPlayerController::SetPawn(APawn* InPawn)
@@ -55,20 +74,59 @@ void ACustomPlayerController::ApplyThruster(const FInputActionValue& Value)
 
 void ACustomPlayerController::GrapplePress(const FInputActionValue& Value)
 {
-	if (GEngine) {
-		const FVector2D MovementVector = Value.Get<FVector2D>();
-		FString Message = FString::Printf(TEXT("%s: Grapple Press"), *(this->GetName()));
-		//0 counts as a unique key, -1 means don't use any key
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, Message);
+	//if (GEngine) {
+	//	const FVector2D MovementVector = Value.Get<FVector2D>();
+	//	FString Message = FString::Printf(TEXT("%s: Grapple Press"), *(this->GetName()));
+	//	//0 counts as a unique key, -1 means don't use any key
+	//	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, Message);
+	//}
+
+	//Old Clicking code
+	//ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+	//
+	//FHitResult HitResult;
+	//bool bHit = false;
+	//if (LocalPlayer && LocalPlayer->ViewportClient)
+	//{
+	//	FVector2D MousePosition;
+	//	if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
+	//	{
+	//		bHit = GetHitResultAtScreenPosition(MousePosition, ECC_Visibility, false, HitResult);
+	//	}
+
+	//	DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 5.f, 12, FColor::Yellow, false, 5.0f);
+	//	AActor* ActorHit = HitResult.GetActor();
+	//	if (ActorHit) {
+	//		if (GEngine) {
+	//			FVector AlteredImpactPoint = HitResult.ImpactPoint;
+	//			AlteredImpactPoint.Y = 0;
+	//			DrawDebugSphere(GetWorld(), AlteredImpactPoint, 5.f, 12, FColor::Red, false, 5.0f);
+
+	//			//0 counts as a unique key, -1 means don't use any key
+	//			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, Message);
+
+	//			if (GEngine) {
+	//				const FVector2D MovementVector = Value.Get<FVector2D>();
+	//				FString Message = FString::Printf(TEXT("%s: Point %s vs %s. Actor is %s"), *(this->GetName()), *HitResult.ImpactPoint.ToString(), *AlteredImpactPoint.ToString(), *ActorHit->GetName());
+	//				//0 counts as a unique key, -1 means don't use any key
+	//				GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, Message);
+	//			}
+	//		}
+	//	}
+	//}
+
+	if (PlayerCharacter) {
+		PlayerCharacter->ShootAtAimLocation();
 	}
+
 }
 
 void ACustomPlayerController::GrappleRelease(const FInputActionValue& Value)
 {
-	if (GEngine) {
-		const FVector2D MovementVector = Value.Get<FVector2D>();
-		FString Message = FString::Printf(TEXT("%s: Grapple Release"), *(this->GetName()));
-		//0 counts as a unique key, -1 means don't use any key
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, Message);
-	}
+	//if (GEngine) {
+	//	const FVector2D MovementVector = Value.Get<FVector2D>();
+	//	FString Message = FString::Printf(TEXT("%s: Grapple Release"), *(this->GetName()));
+	//	//0 counts as a unique key, -1 means don't use any key
+	//	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, Message);
+	//}
 }
