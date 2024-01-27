@@ -34,6 +34,7 @@ public:
 	void StartRetraction();
 	void EndRetraction();
 	void UpdateCableEndPoint();
+	void TryToInteract();
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USceneComponent* RopeStartPivot;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -49,6 +50,13 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	ACustomPhysicsActor* AttachedPhysicsActor;
+
+	UFUNCTION(BlueprintCallable)
+	void SetFuelToMax();
+	UFUNCTION(BlueprintCallable)
+	void SetOxygenToMax();
+	UFUNCTION(BlueprintNativeEvent)
+	void Die();
 protected:
 	bool bIsCableConnected;
 
@@ -75,6 +83,24 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
 	float GrappleShootOutMaxDistance = 300.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float MaxFuel = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float MaxOxygen = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float FuelExpenseRate = 20.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float OxygenBaseExpenseRate = 20.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	bool bDebugInfniteFuel = false;
+
+	bool bDead = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	ACustomPhysicsActor* ObjectToInteractWith;
+
+	float CurrentFuel;
+	float CurrentOxygen;
 
 
 	GrappleState CurrentGrappleState = GrappleState::Retracted;
@@ -85,6 +111,11 @@ protected:
 	bool GetDidCableConnect();
 	void GrappleTowardsEachOther();
 	void SetCableEndpointToAttachment();
+
+	//Vital Functions
+	void ExpendFuel(float Amount);
+	void ExpendOxygen(float Amount);
+
 private:
 	FVector AimLocation;
 	FVector ShootGoalLocation;
@@ -104,6 +135,14 @@ public:
 
 	bool GetIsCableConnected();
 
+	UFUNCTION(BlueprintCallable)
+	float GetFuelPercentage();
+	UFUNCTION(BlueprintCallable)
+	float GetOxygenPercentage();
+	UFUNCTION(BlueprintPure)
+	bool HasFuel();
 
+	UFUNCTION(BlueprintPure)
+	bool IsDead();
 
 };

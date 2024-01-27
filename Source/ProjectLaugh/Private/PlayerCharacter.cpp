@@ -12,6 +12,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "CustomPhysicsActor.h"
 #include "Math/UnrealMathUtility.h"
+#include "Engine/World.h"
 
 
 // Sets default values
@@ -104,10 +105,19 @@ void APlayerCharacter::UpdateCableEndPoint()
 	}
 }
 
+void APlayerCharacter::TryToInteract()
+{
+	if (ObjectToInteractWith && !ObjectToInteractWith->GetIsConsumed()) {
+		ObjectToInteractWith->Interact(this);
+	}
+}
+
 // Called when the game starts or when spawned
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	CurrentFuel = MaxFuel;
+	CurrentOxygen = MaxOxygen;
 	Cable->EndLocation = FVector::ZeroVector;
 	Cable->SetVisibility(false);
 	
@@ -115,7 +125,7 @@ void APlayerCharacter::BeginPlay()
 
 bool APlayerCharacter::GetDidCableConnect()
 {
-	float SphereSize = 30.f;
+	float SphereSize = 25.f;
 	TArray<AActor*> OutActors;
 	TArray<AActor*> IgnoreActors;
 
@@ -128,17 +138,18 @@ bool APlayerCharacter::GetDidCableConnect()
 	//DrawDebugSphere(GetWorld(), ShootCurrentLocation, SphereSize, 12, FColor::Yellow, false, 0.1);
 
 	if (bHit) {		
-		for (AActor* Actor : OutActors) {
-			ACustomPhysicsActor* PhysicsActor = Cast<ACustomPhysicsActor>(Actor);
-			if (PhysicsActor) {				
-				AttachedPhysicsActor = PhysicsActor;
-				return true;
+		if (OutActors.Num() > 0) {
+			for (AActor* Actor : OutActors) {
+				ACustomPhysicsActor* PhysicsActor = Cast<ACustomPhysicsActor>(Actor);
+				if (PhysicsActor && !PhysicsActor->GetPreventGrapple()) {
+					AttachedPhysicsActor = PhysicsActor;
+					return true;
+				}
 			}
-			else {
-				StartRetraction();
-				return false;
-			}
+			StartRetraction();
+			return false;
 		}
+		
 	}
 		//Grapple Functions
 
@@ -205,10 +216,50 @@ void APlayerCharacter::SetCableEndpointToAttachment()
 	}
 }
 
+void APlayerCharacter::ExpendFuel(float Amount)
+{
+	CurrentFuel = FMath::Max(0.f, CurrentFuel- Amount);
+}
+
+void APlayerCharacter::ExpendOxygen(float Amount)
+{
+	CurrentOxygen = FMath::Max(0.f, CurrentOxygen - Amount);
+}
+
+void APlayerCharacter::SetFuelToMax()
+{
+	CurrentFuel = MaxFuel;
+}
+
+void APlayerCharacter::SetOxygenToMax()
+{
+	CurrentOxygen = MaxOxygen;
+}
+
+void APlayerCharacter::Die_Implementation()
+{
+	bDead = true;
+}
+
 // Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	//if (GEngine) {
+	//	FString Message = FString::Printf(TEXT("%s: Oxygen %f"), *(this->GetName()), CurrentOxygen);
+	//	//0 counts as a unique key, -1 means don't use any key
+	//	GEngine->AddOnScreenDebugMessage(9, 0.f, FColor::Green, Message);
+	//}
+	if (!bDead) {
+		if (CurrentOxygen <= 0.001f) {
+			CurrentOxygen = 0;
+			Die();
+		}
+		else {
+			ExpendOxygen(OxygenBaseExpenseRate * DeltaTime);
+		}
+	}
+
 
 	switch (CurrentGrappleState){
 		case GrappleState::Retracted:
@@ -261,23 +312,30 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 void APlayerCharacter::ApplyThruster(FVector2D Vector)
 {
-	FVector XZForceDirection = FVector(Vector.X, 0, Vector.Y);
-	float ForceScalar = 0.f;
-	if (bUseAcceleration) {
-		ForceScalar = GetMass() * ThrusterAccelertion;
-	}
-	else {
-		ForceScalar = ThrusterForce;
-	}
+	if (HasFuel()) {
+		FVector XZForceDirection = FVector(Vector.X, 0, Vector.Y);
+		float ForceScalar = 0.f;
+		if (bUseAcceleration) {
+			ForceScalar = GetMass() * ThrusterAccelertion;
+		}
+		else {
+			ForceScalar = ThrusterForce;
+		}
 
-	FVector Force = XZForceDirection * ForceScalar;
+		FVector Force = XZForceDirection * ForceScalar;
+		float DeltaSeconds = GetWorld()->GetDeltaSeconds();
+		float FuelToSpend = (FuelExpenseRate * FMath::Abs(Vector.X) * DeltaSeconds) + (FuelExpenseRate * FMath::Abs(Vector.Y) * DeltaSeconds);
+		if (!bDebugInfniteFuel) {
+			ExpendFuel(FuelToSpend);
+		}
 
-	AddConstantForce(Force);
-	//if (GEngine) {
-	//	FString Message = FString::Printf(TEXT("%s: Applied Force %s"), *(this->GetName()), *Force.ToString());
-	//	//0 counts as a unique key, -1 means don't use any key
-	//	GEngine->AddOnScreenDebugMessage(0, 0.f, FColor::Green, Message);
-	//}
+		AddConstantForce(Force);
+		//if (GEngine) {
+		//	FString Message = FString::Printf(TEXT("%s: Applied Force %s"), *(this->GetName()), *Force.ToString());
+		//	//0 counts as a unique key, -1 means don't use any key
+		//	GEngine->AddOnScreenDebugMessage(0, 0.f, FColor::Green, Message);
+		//}
+	}
 }
 
 float APlayerCharacter::GetMass()
@@ -300,5 +358,25 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 bool APlayerCharacter::GetIsCableConnected()
 {
 	return bIsCableConnected;
+}
+
+float APlayerCharacter::GetFuelPercentage()
+{
+	return CurrentFuel / MaxFuel;
+}
+
+float APlayerCharacter::GetOxygenPercentage()
+{
+	return CurrentOxygen / MaxOxygen;
+}
+
+bool APlayerCharacter::HasFuel()
+{
+	return CurrentFuel > 0;
+}
+
+bool APlayerCharacter::IsDead()
+{
+	return bDead;
 }
 

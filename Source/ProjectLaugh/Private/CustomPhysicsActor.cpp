@@ -2,6 +2,7 @@
 
 
 #include "CustomPhysicsActor.h"
+#include "PlayerCharacter.h"
 
 // Sets default values
 ACustomPhysicsActor::ACustomPhysicsActor()
@@ -38,6 +39,17 @@ FVector ACustomPhysicsActor::GetSimulatedBodyLocation()
 	return StaticMesh->GetComponentLocation();
 }
 
+void ACustomPhysicsActor::Consume()
+{
+	bIsConsumed = true;
+}
+
+
+void ACustomPhysicsActor::Interact_Implementation(APlayerCharacter* PlayerCharacter)
+{
+	//Empty
+}
+
 // Called when the game starts or when spawned
 void ACustomPhysicsActor::BeginPlay()
 {
@@ -50,5 +62,10 @@ void ACustomPhysicsActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+bool ACustomPhysicsActor::GetIsConsumed()
+{
+	return bIsConsumed;
 }
 

@@ -32,7 +32,10 @@ void ACustomPlayerController::SetupInputComponent()
 		if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) {
 			EnhancedInputComponent->BindAction(RetractAction, ETriggerEvent::Started, this, &ACustomPlayerController::RetractPress);
 		}
-
+		if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) {
+			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ACustomPlayerController::InteractPress);
+		}
+		
 		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 		Subsystem->AddMappingContext(GameplayContext, 0);
 	}
@@ -42,7 +45,6 @@ void ACustomPlayerController::Tick(float DeltaTime)
 {
 	if (PlayerCharacter) 
 	{
-
 		FVector MouseWorldPosition;
 		FVector MouseWorldDirection;
 		DeprojectMousePositionToWorld(MouseWorldPosition, MouseWorldDirection);;
@@ -72,8 +74,13 @@ void ACustomPlayerController::SetPawn(APawn* InPawn)
 
 void ACustomPlayerController::ApplyThruster(const FInputActionValue& Value)
 {
-	const FVector2D MovementVector = Value.Get<FVector2D>();
+
+
 	if (PlayerCharacter) {
+		if (PlayerCharacter->IsDead()) {
+			return;
+		}
+		const FVector2D MovementVector = Value.Get<FVector2D>();
 		PlayerCharacter->ApplyThruster(MovementVector);
 	}
 }
@@ -122,6 +129,9 @@ void ACustomPlayerController::GrapplePress(const FInputActionValue& Value)
 	//}
 
 	if (PlayerCharacter) {
+		if (PlayerCharacter->IsDead()) {
+			return;
+		}
 		PlayerCharacter->ShootAtAimLocation();
 	}
 
@@ -140,6 +150,19 @@ void ACustomPlayerController::GrappleRelease(const FInputActionValue& Value)
 void ACustomPlayerController::RetractPress(const FInputActionValue& Value)
 {
 	if (PlayerCharacter) {
+		if (PlayerCharacter->IsDead()) {
+			return;
+		}
 		PlayerCharacter->StartRetraction();
+	}
+}
+
+void ACustomPlayerController::InteractPress(const FInputActionValue& Value)
+{
+	if (PlayerCharacter) {
+		if (PlayerCharacter->IsDead()) {
+			return;
+		}
+		PlayerCharacter->TryToInteract();
 	}
 }
