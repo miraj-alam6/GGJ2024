@@ -17,6 +17,7 @@ public:
 	// Sets default values for this actor's properties
 	ACustomPhysicsActor();
 	FVector OffsetWhenAttached;
+	UFUNCTION(BlueprintCallable)
 	void AddConstantForce(const FVector& Force);
 	float GetMass();
 	UFUNCTION(BlueprintPure)
