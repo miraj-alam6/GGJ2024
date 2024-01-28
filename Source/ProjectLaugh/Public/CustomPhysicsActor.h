@@ -35,6 +35,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
 	FText ItemName;
 
+	UFUNCTION(BlueprintCallable)
+	void HandleDestruction(APlayerCharacter* PlayerCharacter);
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USceneComponent* SceneRoot;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)

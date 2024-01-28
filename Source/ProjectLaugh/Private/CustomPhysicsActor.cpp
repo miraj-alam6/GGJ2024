@@ -61,6 +61,16 @@ void ACustomPhysicsActor::BeginPlay()
 	
 }
 
+void ACustomPhysicsActor::HandleDestruction(APlayerCharacter* PlayerCharacter)
+{
+	bPreventGrapple = true;
+
+	if (PlayerCharacter && PlayerCharacter->AttachedPhysicsActor == this) {
+		PlayerCharacter->EndRetraction();
+	}
+}
+
+
 // Called every frame
 void ACustomPhysicsActor::Tick(float DeltaTime)
 {

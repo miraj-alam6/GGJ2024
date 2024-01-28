@@ -144,6 +144,7 @@ public:
 	virtual void ApplyThruster(FVector2D Vector);
 
 	float GetMass();
+	UFUNCTION(BlueprintCallable)
 	void AddConstantForce(const FVector& Force);
 
 	// Called to bind functionality to input
