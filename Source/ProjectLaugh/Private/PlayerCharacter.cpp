@@ -65,11 +65,11 @@ void APlayerCharacter::ShootAtAimLocation()
 		ShootGoalLocation = AimLocation;
 		ShootCurrentLocation = AimLocation;
 		CableDirection = (AimLocation - GetActorLocation()).GetSafeNormal();
-		if (GEngine) {
-			FString Message = FString::Printf(TEXT("%s: ShootDirection is %s"), *(this->GetName()), *CableDirection.ToString());
-			//0 counts as a unique key, -1 means don't use any key
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, Message);
-		}
+		//if (GEngine) {
+		//	FString Message = FString::Printf(TEXT("%s: ShootDirection is %s"), *(this->GetName()), *CableDirection.ToString());
+		//	//0 counts as a unique key, -1 means don't use any key
+		//	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, Message);
+		//}
 		//APhysicsActor* OutPhysicsActor;
 		CurrentGrappleShootOutDistance = 0.f;
 		CurrentGrappleState = GrappleState::ShootingOut;
@@ -98,11 +98,11 @@ void APlayerCharacter::UpdateCableEndPoint()
 
 	FVector CorrectEndLocation = UKismetMathLibrary::InverseTransformLocation(GetActorTransform(), ShootCurrentLocation);
 	Cable->EndLocation = CorrectEndLocation;
-	if (GEngine) {
-		FString Message = FString::Printf(TEXT("%s: Stuff World %s  Local Cable %s"), *(this->GetName()), *ShootCurrentLocation.ToString(), *CorrectEndLocation.ToString());
-		//0 counts as a unique key, -1 means don't use any key
-		GEngine->AddOnScreenDebugMessage(4, 0.f, FColor::Green, Message);
-	}
+	//if (GEngine) {
+	//	FString Message = FString::Printf(TEXT("%s: Stuff World %s  Local Cable %s"), *(this->GetName()), *ShootCurrentLocation.ToString(), *CorrectEndLocation.ToString());
+	//	//0 counts as a unique key, -1 means don't use any key
+	//	GEngine->AddOnScreenDebugMessage(4, 0.f, FColor::Green, Message);
+	//}
 }
 
 void APlayerCharacter::TryToInteract()

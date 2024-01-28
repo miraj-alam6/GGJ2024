@@ -64,11 +64,11 @@ void ACustomPlayerController::SetPawn(APawn* InPawn)
 	APlayerCharacter* L_PlayerCharacter = Cast<APlayerCharacter>(GetPawn());
 	if (L_PlayerCharacter) {
 		PlayerCharacter = L_PlayerCharacter;
-		if (GEngine) {
-			FString Message = FString::Printf(TEXT("%s: Set Player character reference"), *(this->GetName()));
-			//0 counts as a unique key, -1 means don't use any key
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, Message);
-		}
+		//if (GEngine) {
+		//	FString Message = FString::Printf(TEXT("%s: Set Player character reference"), *(this->GetName()));
+		//	//0 counts as a unique key, -1 means don't use any key
+		//	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, Message);
+		//}
 	}
 }
 
