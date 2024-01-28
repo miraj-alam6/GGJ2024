@@ -27,7 +27,8 @@ public:
 	UFUNCTION(BlueprintNativeEvent)	
 	void Interact(APlayerCharacter* PlayerCharacter);
 
-
+	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+	bool GetPriorityForInteraction = false;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
