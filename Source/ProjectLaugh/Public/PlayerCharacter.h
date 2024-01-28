@@ -19,7 +19,7 @@ enum class GrappleState : uint8 {
 	FullRetracting,
 	ShootingOut
 };
- 
+
 
 UCLASS()
 class PROJECTLAUGH_API APlayerCharacter : public ACharacter
@@ -64,7 +64,7 @@ protected:
 	bool bIsCableConnected;
 
 	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;	
+	virtual void BeginPlay() override;
 
 	//Parameters
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
@@ -85,11 +85,14 @@ protected:
 	float GrappleFullRetractionSpeed = 1000.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
 	float GrappleShootOutMaxDistance = 300.f;
-
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float MaxHealth = 200.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
 	float MaxFuel = 200.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
 	float MaxOxygen = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float NoOxygenHealthLossRate = 20.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
 	float FuelExpenseRate = 20.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
@@ -104,6 +107,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	ACustomPhysicsActor* ObjectToInteractWith;
 
+	float CurrentHealth;
 	float CurrentFuel;
 	float CurrentOxygen;
 
@@ -118,8 +122,13 @@ protected:
 	void SetCableEndpointToAttachment();
 
 	//Vital Functions
+	UFUNCTION(BlueprintCallable)
+	void RestoreHealth(float Amount);
+	UFUNCTION(BlueprintCallable)
+	void LoseHealth(float Amount);
 	void ExpendFuel(float Amount);
 	void ExpendOxygen(float Amount);
+
 
 	TArray<FText> LogEntries;
 
@@ -127,7 +136,7 @@ private:
 	FVector AimLocation;
 	FVector ShootGoalLocation;
 	FVector ShootCurrentLocation;
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -146,6 +155,8 @@ public:
 	float GetFuelPercentage();
 	UFUNCTION(BlueprintCallable)
 	float GetOxygenPercentage();
+	UFUNCTION(BlueprintCallable)
+	float GetHealthPercentage();
 	UFUNCTION(BlueprintPure)
 	bool HasFuel();
 	UFUNCTION(BlueprintPure)

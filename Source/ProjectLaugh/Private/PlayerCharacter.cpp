@@ -19,7 +19,7 @@
 // Sets default values
 APlayerCharacter::APlayerCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	//Camera->SetupAttachment(Root)
 
@@ -41,11 +41,11 @@ APlayerCharacter::APlayerCharacter()
 	// Create a camera and attach to boom
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-	Camera->bUsePawnControlRotation = false; 
+	Camera->bUsePawnControlRotation = false;
 
 	RopeStartPivot = CreateDefaultSubobject<USceneComponent>(TEXT("RopeStartPivot"));
 	RopeStartPivot->SetupAttachment(GetRootComponent());
-	
+
 	AimEndPoint = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AimEndPoint"));
 	AimEndPoint->SetupAttachment(GetRootComponent());
 
@@ -117,11 +117,12 @@ void APlayerCharacter::TryToInteract()
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	CurrentHealth = MaxHealth;
 	CurrentFuel = MaxFuel;
 	CurrentOxygen = MaxOxygen;
 	Cable->EndLocation = FVector::ZeroVector;
 	Cable->SetVisibility(false);
-	
+
 }
 
 bool APlayerCharacter::GetDidCableConnect()
@@ -140,7 +141,7 @@ bool APlayerCharacter::GetDidCableConnect()
 
 	//When using actors
 	//bool bHit = UKismetSystemLibrary::SphereOverlapActors(this, ShootCurrentLocation, SphereSize, TraceObjectTypes, AActor::StaticClass(), IgnoreActors, OutActors);
-	/*if (bHit) {		
+	/*if (bHit) {
 		if (OutActors.Num() > 0) {
 			for (AActor* Actor : OutActors) {
 				ACustomPhysicsActor* PhysicsActor = Cast<ACustomPhysicsActor>(Actor);
@@ -152,7 +153,7 @@ bool APlayerCharacter::GetDidCableConnect()
 			StartRetraction();
 			return false;
 		}
-		
+
 	}*/
 
 	bool bHit = UKismetSystemLibrary::SphereOverlapComponents(this, ShootCurrentLocation, SphereSize, TraceObjectTypes, UStaticMeshComponent::StaticClass(), IgnoreActors, OutComponents);
@@ -171,7 +172,7 @@ bool APlayerCharacter::GetDidCableConnect()
 		}
 
 	}
-		//Grapple Functions
+	//Grapple Functions
 
 	return false;
 
@@ -236,9 +237,19 @@ void APlayerCharacter::SetCableEndpointToAttachment()
 	}
 }
 
+void APlayerCharacter::RestoreHealth(float Amount)
+{
+	CurrentHealth = FMath::Min(MaxHealth, CurrentHealth + Amount);
+}
+
+void APlayerCharacter::LoseHealth(float Amount)
+{
+	CurrentHealth = FMath::Max(0.f, CurrentHealth - Amount);
+}
+
 void APlayerCharacter::ExpendFuel(float Amount)
 {
-	CurrentFuel = FMath::Max(0.f, CurrentFuel- Amount);
+	CurrentFuel = FMath::Max(0.f, CurrentFuel - Amount);
 }
 
 void APlayerCharacter::ExpendOxygen(float Amount)
@@ -275,62 +286,65 @@ void APlayerCharacter::Tick(float DeltaTime)
 	//	//0 counts as a unique key, -1 means don't use any key
 	//	GEngine->AddOnScreenDebugMessage(9, 0.f, FColor::Green, Message);
 	//}
+
+	if (HasOxygen()) {
+		ExpendOxygen(OxygenBaseExpenseRate * DeltaTime);
+	}
+	else {
+		LoseHealth(NoOxygenHealthLossRate * DeltaTime);
+	}
+
 	if (!bDead) {
-		if (CurrentOxygen <= 0.001f) {
-			CurrentOxygen = 0;
+		if (CurrentHealth <= 0.001f) {
 			Die();
-		}
-		else {
-			ExpendOxygen(OxygenBaseExpenseRate * DeltaTime);
 		}
 	}
 
+	switch (CurrentGrappleState) {
+	case GrappleState::Retracted:
 
-	switch (CurrentGrappleState){
-		case GrappleState::Retracted:
+		break;
+	case GrappleState::AttachedRetracting:
+		GrappleTowardsEachOther();
+		SetCableEndpointToAttachment();
+		break;
 
+	case GrappleState::ShootingOut:
+
+		if (GEngine) {
+			FString Message = FString::Printf(TEXT("%s: Difference %f"), *(this->GetName()), CurrentGrappleShootOutDistance - GrappleShootOutMaxDistance);
+			//0 counts as a unique key, -1 means don't use any key
+			GEngine->AddOnScreenDebugMessage(0, 0.f, FColor::Green, Message);
+		}
+
+		if (FMath::IsNearlyEqual(CurrentGrappleShootOutDistance, GrappleShootOutMaxDistance, 1.0f)) {
+			StartRetraction();
 			break;
-		case GrappleState::AttachedRetracting:
-			GrappleTowardsEachOther();
-			SetCableEndpointToAttachment();
+		}
+
+		CurrentGrappleShootOutDistance = FMath::FInterpTo(CurrentGrappleShootOutDistance, GrappleShootOutMaxDistance, DeltaTime, GrappleShootOutSpeed);
+		ShootCurrentLocation = RopeStartPivot->GetComponentLocation() + CableDirection * CurrentGrappleShootOutDistance;
+		UpdateCableEndPoint();
+		if (GetDidCableConnect()) {
+			AttachedPhysicsActor->OffsetWhenAttached = ShootCurrentLocation - AttachedPhysicsActor->GetSimulatedBodyLocation();
+			AttachedPhysicsActor->OffsetWhenAttached.Y = 0;
+			CurrentGrappleState = GrappleState::AttachedRetracting;
+		}
+		break;
+	case GrappleState::FullRetracting:
+		if (FMath::IsNearlyZero(CurrentGrappleShootOutDistance, 20.0f)) {
+			EndRetraction();
 			break;
-
-		case GrappleState::ShootingOut:
-
-			if (GEngine) {
-				FString Message = FString::Printf(TEXT("%s: Difference %f"), *(this->GetName()), CurrentGrappleShootOutDistance - GrappleShootOutMaxDistance);
-				//0 counts as a unique key, -1 means don't use any key
-				GEngine->AddOnScreenDebugMessage(0, 0.f, FColor::Green, Message);
-			}
-
-			if (FMath::IsNearlyEqual(CurrentGrappleShootOutDistance, GrappleShootOutMaxDistance, 1.0f)) {
-				StartRetraction();
-				break;
-			}
-
-			CurrentGrappleShootOutDistance = FMath::FInterpTo(CurrentGrappleShootOutDistance, GrappleShootOutMaxDistance, DeltaTime, GrappleShootOutSpeed);
-			ShootCurrentLocation = RopeStartPivot->GetComponentLocation() + CableDirection * CurrentGrappleShootOutDistance;
-			UpdateCableEndPoint();
-			if (GetDidCableConnect()) {
-				AttachedPhysicsActor->OffsetWhenAttached = ShootCurrentLocation - AttachedPhysicsActor->GetSimulatedBodyLocation();
-				AttachedPhysicsActor->OffsetWhenAttached.Y = 0;
-				CurrentGrappleState = GrappleState::AttachedRetracting;
-			}
-			break;
-		case GrappleState::FullRetracting:
-			if (FMath::IsNearlyZero(CurrentGrappleShootOutDistance, 20.0f)) {
-				EndRetraction();
-				break;
-			}
-			CurrentGrappleShootOutDistance = FMath::FInterpTo(CurrentGrappleShootOutDistance, 0, DeltaTime, GrappleFullRetractionSpeed);
-			ShootCurrentLocation = RopeStartPivot->GetComponentLocation() + CableDirection * CurrentGrappleShootOutDistance;
-			UpdateCableEndPoint();
-			break;
+		}
+		CurrentGrappleShootOutDistance = FMath::FInterpTo(CurrentGrappleShootOutDistance, 0, DeltaTime, GrappleFullRetractionSpeed);
+		ShootCurrentLocation = RopeStartPivot->GetComponentLocation() + CableDirection * CurrentGrappleShootOutDistance;
+		UpdateCableEndPoint();
+		break;
 
 
-		case GrappleState::Attached:
+	case GrappleState::Attached:
 
-			break;
+		break;
 	}
 
 }
@@ -401,14 +415,19 @@ float APlayerCharacter::GetOxygenPercentage()
 	return CurrentOxygen / MaxOxygen;
 }
 
+float APlayerCharacter::GetHealthPercentage()
+{
+	return CurrentHealth / MaxHealth;
+}
+
 bool APlayerCharacter::HasFuel()
 {
-	return CurrentFuel > 0;
+	return CurrentFuel > 0.0000001f;
 }
 
 bool APlayerCharacter::HasOxygen()
 {
-	return CurrentOxygen > 0;
+	return CurrentOxygen > 0.0000001f;
 }
 
 bool APlayerCharacter::IsDead()
