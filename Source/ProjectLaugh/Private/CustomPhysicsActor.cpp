@@ -26,7 +26,9 @@ ACustomPhysicsActor::ACustomPhysicsActor()
 
 void ACustomPhysicsActor::AddConstantForce(const FVector& Force)
 {
-	StaticMesh->AddForce(Force);
+	if (StaticMesh->IsSimulatingPhysics()) {
+		StaticMesh->AddForce(Force);
+	}
 }
 
 float ACustomPhysicsActor::GetMass()
@@ -67,5 +69,10 @@ void ACustomPhysicsActor::Tick(float DeltaTime)
 bool ACustomPhysicsActor::GetIsConsumed()
 {
 	return bIsConsumed;
+}
+
+FText ACustomPhysicsActor::GetItemName()
+{
+	return ItemName;
 }
 

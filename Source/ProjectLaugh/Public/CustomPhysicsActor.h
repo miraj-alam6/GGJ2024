@@ -25,11 +25,15 @@ public:
 	void Consume();
 	UFUNCTION(BlueprintNativeEvent)	
 	void Interact(APlayerCharacter* PlayerCharacter);
+
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
 	bool bPreventGrapple = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	FText ItemName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USceneComponent* SceneRoot;
@@ -42,4 +46,6 @@ public:
 	UFUNCTION(BlueprintPure)
 	bool GetIsConsumed();
 	FORCEINLINE const bool GetPreventGrapple() { return bPreventGrapple; }
+	UFUNCTION(BlueprintPure)
+	FText GetItemName();
 };
