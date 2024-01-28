@@ -312,7 +312,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 void APlayerCharacter::ApplyThruster(FVector2D Vector)
 {
-	if (HasFuel()) {
+	if (HasFuel() || HasOxygen()) {
 		FVector XZForceDirection = FVector(Vector.X, 0, Vector.Y);
 		float ForceScalar = 0.f;
 		if (bUseAcceleration) {
@@ -324,9 +324,15 @@ void APlayerCharacter::ApplyThruster(FVector2D Vector)
 
 		FVector Force = XZForceDirection * ForceScalar;
 		float DeltaSeconds = GetWorld()->GetDeltaSeconds();
-		float FuelToSpend = (FuelExpenseRate * FMath::Abs(Vector.X) * DeltaSeconds) + (FuelExpenseRate * FMath::Abs(Vector.Y) * DeltaSeconds);
 		if (!bDebugInfniteFuel) {
-			ExpendFuel(FuelToSpend);
+			if (HasFuel()) {
+				float FuelToSpend = (FuelExpenseRate * FMath::Abs(Vector.X) * DeltaSeconds) + (FuelExpenseRate * FMath::Abs(Vector.Y) * DeltaSeconds);
+				ExpendFuel(FuelToSpend);
+			}
+			else {
+				float OxygenToSpend = (OxygenForFuelExpenseRate * FMath::Abs(Vector.X) * DeltaSeconds) + (OxygenForFuelExpenseRate * FMath::Abs(Vector.Y) * DeltaSeconds);
+				ExpendOxygen(OxygenToSpend);
+			}
 		}
 
 		AddConstantForce(Force);
@@ -373,6 +379,11 @@ float APlayerCharacter::GetOxygenPercentage()
 bool APlayerCharacter::HasFuel()
 {
 	return CurrentFuel > 0;
+}
+
+bool APlayerCharacter::HasOxygen()
+{
+	return CurrentOxygen > 0;
 }
 
 bool APlayerCharacter::IsDead()

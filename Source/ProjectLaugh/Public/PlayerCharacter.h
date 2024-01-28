@@ -93,6 +93,8 @@ protected:
 	float OxygenBaseExpenseRate = 20.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
 	bool bDebugInfniteFuel = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float OxygenForFuelExpenseRate = 5.f;
 
 	bool bDead = false;
 
@@ -141,6 +143,8 @@ public:
 	float GetOxygenPercentage();
 	UFUNCTION(BlueprintPure)
 	bool HasFuel();
+	UFUNCTION(BlueprintPure)
+	bool HasOxygen();
 
 	UFUNCTION(BlueprintPure)
 	bool IsDead();
