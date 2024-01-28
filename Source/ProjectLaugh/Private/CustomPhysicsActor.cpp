@@ -14,13 +14,13 @@ ACustomPhysicsActor::ACustomPhysicsActor()
 	StaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	StaticMesh->SetupAttachment(GetRootComponent());
 
-	FBodyInstance* BodyInstance = StaticMesh->GetBodyInstance();
-	if (BodyInstance) {
-		BodyInstance->bLockYTranslation = true;
-		BodyInstance->bLockXRotation = true;
-		BodyInstance->bLockZRotation = true;
-		BodyInstance->SetDOFLock(EDOFMode::SixDOF);
-	}
+	//FBodyInstance* BodyInstance = StaticMesh->GetBodyInstance();
+	//if (BodyInstance) {
+	//	BodyInstance->bLockYTranslation = true;
+	//	BodyInstance->bLockXRotation = true;
+	//	BodyInstance->bLockZRotation = true;
+	//	BodyInstance->SetDOFLock(EDOFMode::SixDOF);
+	//}
 }
 
 void ACustomPhysicsActor::AddConstantForce(const FVector& Force)
@@ -31,6 +31,11 @@ void ACustomPhysicsActor::AddConstantForce(const FVector& Force)
 float ACustomPhysicsActor::GetMass()
 {
 	return StaticMesh->GetMassScale();
+}
+
+FVector ACustomPhysicsActor::GetSimulatedBodyLocation()
+{
+	return StaticMesh->GetComponentLocation();
 }
 
 // Called when the game starts or when spawned

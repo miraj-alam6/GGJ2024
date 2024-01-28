@@ -33,10 +33,14 @@ protected:
 	UInputAction* ThrusterAction;
 	UPROPERTY(EditDefaultsOnly, Category = Input)
 	UInputAction* GrappleAction;
+	UPROPERTY(EditDefaultsOnly, Category = Input)
+	UInputAction* RetractAction;
 	virtual void SetPawn(APawn* InPawn) override;
 private:
 	APlayerCharacter* PlayerCharacter;
 	void ApplyThruster(const FInputActionValue& Value);
 	void GrapplePress(const FInputActionValue& Value);
 	void GrappleRelease(const FInputActionValue& Value);
+	void RetractPress(const FInputActionValue& Value);
+	bool bAdded;
 };
