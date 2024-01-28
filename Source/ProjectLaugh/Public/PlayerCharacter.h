@@ -19,7 +19,7 @@ enum class GrappleState : uint8 {
 	FullRetracting,
 	ShootingOut
 };
- 
+
 
 UCLASS()
 class PROJECTLAUGH_API APlayerCharacter : public ACharacter
@@ -34,6 +34,7 @@ public:
 	void StartRetraction();
 	void EndRetraction();
 	void UpdateCableEndPoint();
+	void TryToInteract();
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USceneComponent* RopeStartPivot;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -49,11 +50,21 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	ACustomPhysicsActor* AttachedPhysicsActor;
+
+	UFUNCTION(BlueprintCallable)
+	void SetFuelToMax();
+	UFUNCTION(BlueprintCallable)
+	void SetOxygenToMax();
+	UFUNCTION(BlueprintNativeEvent)
+	void Die();
+
+	UFUNCTION(BlueprintCallable)
+	void LogMessage(FText& Text);
 protected:
 	bool bIsCableConnected;
 
 	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;	
+	virtual void BeginPlay() override;
 
 	//Parameters
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
@@ -74,7 +85,31 @@ protected:
 	float GrappleFullRetractionSpeed = 1000.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
 	float GrappleShootOutMaxDistance = 300.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float MaxHealth = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float MaxFuel = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float MaxOxygen = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float NoOxygenHealthLossRate = 20.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float FuelExpenseRate = 20.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float OxygenBaseExpenseRate = 20.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	bool bDebugInfniteFuel = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
+	float OxygenForFuelExpenseRate = 5.f;
 
+	bool bDead = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	ACustomPhysicsActor* ObjectToInteractWith;
+
+	float CurrentHealth;
+	float CurrentFuel;
+	float CurrentOxygen;
 
 
 	GrappleState CurrentGrappleState = GrappleState::Retracted;
@@ -85,11 +120,23 @@ protected:
 	bool GetDidCableConnect();
 	void GrappleTowardsEachOther();
 	void SetCableEndpointToAttachment();
+
+	//Vital Functions
+	UFUNCTION(BlueprintCallable)
+	void RestoreHealth(float Amount);
+	UFUNCTION(BlueprintCallable)
+	void LoseHealth(float Amount);
+	void ExpendFuel(float Amount);
+	void ExpendOxygen(float Amount);
+
+
+	TArray<FText> LogEntries;
+
 private:
 	FVector AimLocation;
 	FVector ShootGoalLocation;
 	FVector ShootCurrentLocation;
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -97,6 +144,7 @@ public:
 	virtual void ApplyThruster(FVector2D Vector);
 
 	float GetMass();
+	UFUNCTION(BlueprintCallable)
 	void AddConstantForce(const FVector& Force);
 
 	// Called to bind functionality to input
@@ -104,6 +152,18 @@ public:
 
 	bool GetIsCableConnected();
 
+	UFUNCTION(BlueprintCallable)
+	float GetFuelPercentage();
+	UFUNCTION(BlueprintCallable)
+	float GetOxygenPercentage();
+	UFUNCTION(BlueprintCallable)
+	float GetHealthPercentage();
+	UFUNCTION(BlueprintPure)
+	bool HasFuel();
+	UFUNCTION(BlueprintPure)
+	bool HasOxygen();
 
+	UFUNCTION(BlueprintPure)
+	bool IsDead();
 
 };

@@ -35,6 +35,8 @@ protected:
 	UInputAction* GrappleAction;
 	UPROPERTY(EditDefaultsOnly, Category = Input)
 	UInputAction* RetractAction;
+	UPROPERTY(EditDefaultsOnly, Category = Input)
+	UInputAction* InteractAction;
 	virtual void SetPawn(APawn* InPawn) override;
 private:
 	APlayerCharacter* PlayerCharacter;
@@ -42,5 +44,6 @@ private:
 	void GrapplePress(const FInputActionValue& Value);
 	void GrappleRelease(const FInputActionValue& Value);
 	void RetractPress(const FInputActionValue& Value);
+	void InteractPress(const FInputActionValue& Value);
 	bool bAdded;
 };

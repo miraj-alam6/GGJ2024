@@ -32,7 +32,10 @@ void ACustomPlayerController::SetupInputComponent()
 		if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) {
 			EnhancedInputComponent->BindAction(RetractAction, ETriggerEvent::Started, this, &ACustomPlayerController::RetractPress);
 		}
-
+		if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent)) {
+			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ACustomPlayerController::InteractPress);
+		}
+		
 		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 		Subsystem->AddMappingContext(GameplayContext, 0);
 	}
@@ -42,13 +45,12 @@ void ACustomPlayerController::Tick(float DeltaTime)
 {
 	if (PlayerCharacter) 
 	{
-
 		FVector MouseWorldPosition;
 		FVector MouseWorldDirection;
 		DeprojectMousePositionToWorld(MouseWorldPosition, MouseWorldDirection);;
 		FVector StartLocation = PlayerCharacter->RopeStartPivot->GetComponentLocation();
 		//FVector EndLocation = StartLocation + MouseDirection * 500.f;
-		FVector EndLocation = StartLocation + MouseWorldDirection * 1000.f;
+		FVector EndLocation = StartLocation + MouseWorldDirection * 1150.f;
 		EndLocation.Y = 0;
 		//DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Red, false, 0.0f, 0, 10.f);
 		PlayerCharacter->SetAimEndPointLocation(EndLocation);
@@ -62,18 +64,23 @@ void ACustomPlayerController::SetPawn(APawn* InPawn)
 	APlayerCharacter* L_PlayerCharacter = Cast<APlayerCharacter>(GetPawn());
 	if (L_PlayerCharacter) {
 		PlayerCharacter = L_PlayerCharacter;
-		if (GEngine) {
-			FString Message = FString::Printf(TEXT("%s: Set Player character reference"), *(this->GetName()));
-			//0 counts as a unique key, -1 means don't use any key
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, Message);
-		}
+		//if (GEngine) {
+		//	FString Message = FString::Printf(TEXT("%s: Set Player character reference"), *(this->GetName()));
+		//	//0 counts as a unique key, -1 means don't use any key
+		//	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, Message);
+		//}
 	}
 }
 
 void ACustomPlayerController::ApplyThruster(const FInputActionValue& Value)
 {
-	const FVector2D MovementVector = Value.Get<FVector2D>();
+
+
 	if (PlayerCharacter) {
+		if (PlayerCharacter->IsDead()) {
+			return;
+		}
+		const FVector2D MovementVector = Value.Get<FVector2D>();
 		PlayerCharacter->ApplyThruster(MovementVector);
 	}
 }
@@ -122,6 +129,9 @@ void ACustomPlayerController::GrapplePress(const FInputActionValue& Value)
 	//}
 
 	if (PlayerCharacter) {
+		if (PlayerCharacter->IsDead()) {
+			return;
+		}
 		PlayerCharacter->ShootAtAimLocation();
 	}
 
@@ -140,6 +150,19 @@ void ACustomPlayerController::GrappleRelease(const FInputActionValue& Value)
 void ACustomPlayerController::RetractPress(const FInputActionValue& Value)
 {
 	if (PlayerCharacter) {
+		if (PlayerCharacter->IsDead()) {
+			return;
+		}
 		PlayerCharacter->StartRetraction();
+	}
+}
+
+void ACustomPlayerController::InteractPress(const FInputActionValue& Value)
+{
+	if (PlayerCharacter) {
+		if (PlayerCharacter->IsDead()) {
+			return;
+		}
+		PlayerCharacter->TryToInteract();
 	}
 }

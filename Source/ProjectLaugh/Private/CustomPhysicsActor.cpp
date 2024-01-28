@@ -2,6 +2,7 @@
 
 
 #include "CustomPhysicsActor.h"
+#include "PlayerCharacter.h"
 
 // Sets default values
 ACustomPhysicsActor::ACustomPhysicsActor()
@@ -25,7 +26,9 @@ ACustomPhysicsActor::ACustomPhysicsActor()
 
 void ACustomPhysicsActor::AddConstantForce(const FVector& Force)
 {
-	StaticMesh->AddForce(Force);
+	if (StaticMesh->IsSimulatingPhysics()) {
+		StaticMesh->AddForce(Force);
+	}
 }
 
 float ACustomPhysicsActor::GetMass()
@@ -38,17 +41,50 @@ FVector ACustomPhysicsActor::GetSimulatedBodyLocation()
 	return StaticMesh->GetComponentLocation();
 }
 
+void ACustomPhysicsActor::Consume()
+{
+	bIsConsumed = true;
+}
+
+
+void ACustomPhysicsActor::Interact_Implementation(APlayerCharacter* PlayerCharacter)
+{
+	//Empty
+}
+
 // Called when the game starts or when spawned
 void ACustomPhysicsActor::BeginPlay()
 {
 	Super::BeginPlay();
+	//Okay to set the default location since physics has not acted on static mesh body yet.
+	SetActorLocation(FVector(GetActorLocation().X, 0, GetActorLocation().Z));
 	
 }
+
+void ACustomPhysicsActor::HandleDestruction(APlayerCharacter* PlayerCharacter)
+{
+	bPreventGrapple = true;
+
+	if (PlayerCharacter && PlayerCharacter->AttachedPhysicsActor == this) {
+		PlayerCharacter->EndRetraction();
+	}
+}
+
 
 // Called every frame
 void ACustomPhysicsActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+bool ACustomPhysicsActor::GetIsConsumed()
+{
+	return bIsConsumed;
+}
+
+FText ACustomPhysicsActor::GetItemName()
+{
+	return ItemName;
 }
 
