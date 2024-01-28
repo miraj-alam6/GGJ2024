@@ -13,6 +13,7 @@
 #include "CustomPhysicsActor.h"
 #include "Math/UnrealMathUtility.h"
 #include "Engine/World.h"
+#include "Components/StaticMeshComponent.h"
 
 
 // Sets default values
@@ -128,16 +129,18 @@ bool APlayerCharacter::GetDidCableConnect()
 	float SphereSize = 25.f;
 	TArray<AActor*> OutActors;
 	TArray<AActor*> IgnoreActors;
-
+	TArray<UPrimitiveComponent*> OutComponents;
 	TArray<TEnumAsByte<EObjectTypeQuery>> TraceObjectTypes;
 	TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_PhysicsBody));
 	TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
 	TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
 
-	bool bHit = UKismetSystemLibrary::SphereOverlapActors(this, ShootCurrentLocation, SphereSize, TraceObjectTypes, AActor::StaticClass(), IgnoreActors, OutActors);
+
 	//DrawDebugSphere(GetWorld(), ShootCurrentLocation, SphereSize, 12, FColor::Yellow, false, 0.1);
 
-	if (bHit) {		
+	//When using actors
+	//bool bHit = UKismetSystemLibrary::SphereOverlapActors(this, ShootCurrentLocation, SphereSize, TraceObjectTypes, AActor::StaticClass(), IgnoreActors, OutActors);
+	/*if (bHit) {		
 		if (OutActors.Num() > 0) {
 			for (AActor* Actor : OutActors) {
 				ACustomPhysicsActor* PhysicsActor = Cast<ACustomPhysicsActor>(Actor);
@@ -150,6 +153,23 @@ bool APlayerCharacter::GetDidCableConnect()
 			return false;
 		}
 		
+	}*/
+
+	bool bHit = UKismetSystemLibrary::SphereOverlapComponents(this, ShootCurrentLocation, SphereSize, TraceObjectTypes, UStaticMeshComponent::StaticClass(), IgnoreActors, OutComponents);
+	if (bHit) {
+		if (OutComponents.Num() > 0) {
+			for (UPrimitiveComponent* Component : OutComponents) {
+				AActor* Actor = Component->GetOwner();
+				ACustomPhysicsActor* PhysicsActor = Cast<ACustomPhysicsActor>(Actor);
+				if (PhysicsActor && !PhysicsActor->GetPreventGrapple()) {
+					AttachedPhysicsActor = PhysicsActor;
+					return true;
+				}
+			}
+			StartRetraction();
+			return false;
+		}
+
 	}
 		//Grapple Functions
 
@@ -224,6 +244,11 @@ void APlayerCharacter::ExpendFuel(float Amount)
 void APlayerCharacter::ExpendOxygen(float Amount)
 {
 	CurrentOxygen = FMath::Max(0.f, CurrentOxygen - Amount);
+}
+
+void APlayerCharacter::LogMessage(FText& Text)
+{
+	LogEntries.Add(Text);
 }
 
 void APlayerCharacter::SetFuelToMax()

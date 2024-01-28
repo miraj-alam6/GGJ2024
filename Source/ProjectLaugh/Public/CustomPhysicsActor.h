@@ -28,7 +28,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Parameters")
 	bool bPreventGrapple = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)

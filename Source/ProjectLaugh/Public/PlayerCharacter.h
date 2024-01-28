@@ -57,6 +57,9 @@ public:
 	void SetOxygenToMax();
 	UFUNCTION(BlueprintNativeEvent)
 	void Die();
+
+	UFUNCTION(BlueprintCallable)
+	void LogMessage(FText& Text);
 protected:
 	bool bIsCableConnected;
 
@@ -117,6 +120,8 @@ protected:
 	//Vital Functions
 	void ExpendFuel(float Amount);
 	void ExpendOxygen(float Amount);
+
+	TArray<FText> LogEntries;
 
 private:
 	FVector AimLocation;
