@@ -50,7 +50,7 @@ void ACustomPlayerController::Tick(float DeltaTime)
 		DeprojectMousePositionToWorld(MouseWorldPosition, MouseWorldDirection);;
 		FVector StartLocation = PlayerCharacter->RopeStartPivot->GetComponentLocation();
 		//FVector EndLocation = StartLocation + MouseDirection * 500.f;
-		FVector EndLocation = StartLocation + MouseWorldDirection * 1250.f;
+		FVector EndLocation = StartLocation + MouseWorldDirection * 1150.f;
 		EndLocation.Y = 0;
 		//DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Red, false, 0.0f, 0, 10.f);
 		PlayerCharacter->SetAimEndPointLocation(EndLocation);

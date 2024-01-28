@@ -56,6 +56,8 @@ void ACustomPhysicsActor::Interact_Implementation(APlayerCharacter* PlayerCharac
 void ACustomPhysicsActor::BeginPlay()
 {
 	Super::BeginPlay();
+	//Okay to set the default location since physics has not acted on static mesh body yet.
+	SetActorLocation(FVector(GetActorLocation().X, 0, GetActorLocation().Z));
 	
 }
 
